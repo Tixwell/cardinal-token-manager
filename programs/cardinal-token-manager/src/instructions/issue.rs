@@ -76,25 +76,6 @@ pub fn handler<'key, 'accounts, 'remaining, 'info>(ctx: Context<'key, 'accounts,
             let associated_token_program_info = next_account_info(remaining_accs)?;
             let authorization_rules_program_info = next_account_info(remaining_accs)?;
             let authorization_rules_info = next_account_info(remaining_accs)?;
-            let accounts = vec![
-                AccountMeta::new(ctx.accounts.issuer_token_account.key(), false),
-                AccountMeta::new_readonly(ctx.accounts.issuer_token_account.owner.key(), false),
-                AccountMeta::new(ctx.accounts.token_manager_token_account.key(), false),
-                AccountMeta::new_readonly(token_manager.key(), false),
-                AccountMeta::new_readonly(mint_info.key(), false),
-                AccountMeta::new(mint_metadata_info.key(), false),
-                AccountMeta::new_readonly(mint_edition_info.key(), false),
-                AccountMeta::new(issuer_token_record_info.key(), false),
-                AccountMeta::new(token_manager_token_record_info.key(), false),
-                AccountMeta::new_readonly(ctx.accounts.issuer.key(), true),
-                AccountMeta::new(ctx.accounts.payer.key(), true),
-                AccountMeta::new_readonly(ctx.accounts.system_program.key(), false),
-                AccountMeta::new_readonly(sysvar_instructions_info.key(), false),
-                AccountMeta::new_readonly(ctx.accounts.token_program.key(), false),
-                AccountMeta::new_readonly(associated_token_program_info.key(), false),
-                AccountMeta::new_readonly(authorization_rules_program_info.key(), false),
-                AccountMeta::new_readonly(authorization_rules_info.key(), false),
-            ];
             invoke(
                 &MetadataTransfer {
                     token: ctx.accounts.issuer_token_account.key(),

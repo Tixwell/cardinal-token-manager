@@ -56,7 +56,7 @@ pub struct InvalidateCtx<'info> {
     rent: Sysvar<'info, Rent>,
 }
 
-pub fn handler<'key, 'accounts, 'remaining, 'info>(ctx: Context<'key, 'accounts, 'remaining, 'info, InvalidateCtx<'info>>) -> Result<()> {
+pub fn handler<'key, 'accounts, 'info, 'remaining: 'info>(ctx: Context<'key, 'accounts, 'remaining, 'info, InvalidateCtx<'info>>) -> Result<()> {
     let token_manager = &mut ctx.accounts.token_manager;
     let remaining_accs = &mut ctx.remaining_accounts.iter().peekable();
 

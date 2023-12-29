@@ -44,7 +44,7 @@ pub struct TransferCtx<'info> {
     token_program: Program<'info, Token>,
 }
 
-pub fn handler<'key, 'accounts, 'remaining, 'info>(ctx: Context<'key, 'accounts, 'remaining, 'info, TransferCtx<'info>>) -> Result<()> {
+pub fn handler<'key, 'accounts, 'info, 'remaining: 'info>(ctx: Context<'key, 'accounts, 'remaining, 'info, TransferCtx<'info>>) -> Result<()> {
     let token_manager = &mut ctx.accounts.token_manager;
     token_manager.recipient_token_account = ctx.accounts.recipient_token_account.key();
     token_manager.state_changed_at = Clock::get().unwrap().unix_timestamp;

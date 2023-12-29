@@ -51,7 +51,7 @@ pub struct ClaimCtx<'info> {
     system_program: Program<'info, System>,
 }
 
-pub fn handler<'key, 'accounts, 'remaining, 'info>(ctx: Context<'key, 'accounts, 'remaining, 'info, ClaimCtx<'info>>) -> Result<()> {
+pub fn handler<'key, 'accounts, 'info, 'remaining: 'info>(ctx: Context<'key, 'accounts, 'remaining, 'info, ClaimCtx<'info>>) -> Result<()> {
     let token_manager = &mut ctx.accounts.token_manager;
     token_manager.recipient_token_account = ctx.accounts.recipient_token_account.key();
     token_manager.state = TokenManagerState::Claimed as u8;

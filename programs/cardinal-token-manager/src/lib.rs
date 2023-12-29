@@ -56,11 +56,11 @@ pub mod cardinal_token_manager {
         unissue::handler(ctx)
     }
 
-    pub fn claim<'key, 'accounts, 'remaining, 'info>(ctx: Context<'key, 'accounts, 'remaining, 'info, ClaimCtx<'info>>) -> Result<()> {
+    pub fn claim<'key, 'accounts, 'info, 'remaining: 'info>(ctx: Context<'key, 'accounts, 'remaining, 'info, ClaimCtx<'info>>) -> Result<()> {
         claim::handler(ctx)
     }
 
-    pub fn invalidate<'key, 'accounts, 'remaining, 'info>(ctx: Context<'key, 'accounts, 'remaining, 'info, InvalidateCtx<'info>>) -> Result<()> {
+    pub fn invalidate<'key, 'accounts, 'info, 'remaining: 'info>(ctx: Context<'key, 'accounts, 'remaining, 'info, InvalidateCtx<'info>>) -> Result<()> {
         invalidate::handler(ctx)
     }
 
@@ -89,7 +89,7 @@ pub mod cardinal_token_manager {
         transfers::close_transfer_receipt::handler(ctx)
     }
 
-    pub fn transfer<'key, 'accounts, 'remaining, 'info>(ctx: Context<'key, 'accounts, 'remaining, 'info, TransferCtx<'info>>) -> Result<()> {
+    pub fn transfer<'key, 'accounts, 'info, 'remaining: 'info>(ctx: Context<'key, 'accounts, 'remaining, 'info, TransferCtx<'info>>) -> Result<()> {
         transfers::transfer::handler(ctx)
     }
 
