@@ -1,6 +1,6 @@
-use mpl_token_metadata::instruction::MetadataInstruction;
-use mpl_token_metadata::instruction::TransferArgs;
-use solana_program::instruction::Instruction;
+use mpl_token_metadata::instructions::Transfer as MetadataTransfer;
+use mpl_token_metadata::instructions::TransferInstructionArgs;
+use mpl_token_metadata::types::TransferArgs;
 
 use crate::errors::ErrorCode;
 use crate::state::*;
@@ -96,16 +96,27 @@ pub fn handler<'key, 'accounts, 'remaining, 'info>(ctx: Context<'key, 'accounts,
                 AccountMeta::new_readonly(authorization_rules_info.key(), false),
             ];
             invoke(
-                &Instruction {
-                    program_id: mpl_token_metadata::id(),
-                    accounts,
-                    data: MetadataInstruction::Transfer(TransferArgs::V1 {
-                        amount: token_manager.amount,
-                        authorization_data: None,
-                    })
-                    .try_to_vec()
-                    .unwrap(),
-                },
+                &MetadataTransfer {
+                    token: ctx.accounts.issuer_token_account.key(),
+                    token_owner: ctx.accounts.issuer_token_account.owner.key(),
+                    destination_token: ctx.accounts.token_manager_token_account.key(),
+                    destination_owner: token_manager.key(),
+                    mint: mint_info.key(),
+                    metadata: mint_metadata_info.key(),
+                    edition: Some(mint_edition_info.key()),
+                    token_record: Some(issuer_token_record_info.key()),
+                    destination_token_record: Some(token_manager_token_record_info.key()),
+                    authority: ctx.accounts.issuer.key(),
+                    payer: ctx.accounts.payer.key(),
+                    system_program: ctx.accounts.system_program.key(),
+                    sysvar_instructions: sysvar_instructions_info.key(),
+                    spl_token_program: ctx.accounts.token_program.key(),
+                    spl_ata_program: associated_token_program_info.key(),
+                    authorization_rules_program: Some(authorization_rules_program_info.key()),
+                    authorization_rules: Some(authorization_rules_info.key()),
+                }.instruction(TransferInstructionArgs { 
+                    transfer_args: TransferArgs::V1 { amount: token_manager.amount,authorization_data: None, } 
+                }),
                 &[
                     ctx.accounts.issuer_token_account.to_account_info(),
                     ctx.accounts.issuer.to_account_info(),
