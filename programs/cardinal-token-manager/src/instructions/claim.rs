@@ -173,7 +173,7 @@ pub fn handler<'key, 'accounts, 'remaining, 'info>(ctx: Context<'key, 'accounts,
                     token_account: ctx.accounts.recipient_token_account.key(),
                     edition: *edition_info.key,
                     mint: ctx.accounts.mint.key(),
-                    token_program: *metadata_program.key, // TODO: unsure
+                    token_program: spl_token::ID, // TODO: unsure
                 }.instruction(),
                 &[
                     token_manager.to_account_info(),
