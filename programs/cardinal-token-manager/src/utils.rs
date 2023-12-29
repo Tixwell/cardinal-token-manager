@@ -20,3 +20,11 @@ pub fn assert_payment_token_account(token_account: &Account<TokenAccount>, token
     }
     Ok(())
 }
+
+pub fn assert_derivation(program_id: &Pubkey, account: &AccountInfo, path: &[&[u8]]) -> Result<u8> {
+    let (key, bump) = Pubkey::find_program_address(path, program_id);
+    if key != *account.key {
+        return Err(ErrorCode::DerivedKeyInvalid.into());
+    }
+    Ok(bump)
+}
