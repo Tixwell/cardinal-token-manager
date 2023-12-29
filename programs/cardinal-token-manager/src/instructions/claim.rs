@@ -1,10 +1,13 @@
-use mpl_token_metadata::instruction::DelegateArgs;
-use mpl_token_metadata::instruction::LockArgs;
-use mpl_token_metadata::instruction::MetadataInstruction;
-use mpl_token_metadata::instruction::TransferArgs;
-use mpl_token_metadata::state::Metadata;
-use mpl_token_metadata::state::TokenStandard;
-use solana_program::instruction::Instruction;
+use mpl_token_metadata::instructions::DelegateInstructionArgs;
+use mpl_token_metadata::instructions::FreezeDelegatedAccount;
+use mpl_token_metadata::instructions::LockInstructionArgs;
+use mpl_token_metadata::instructions::TransferInstructionArgs;
+use mpl_token_metadata::types::DelegateArgs;
+use mpl_token_metadata::types::LockArgs;
+use mpl_token_metadata::types::TransferArgs;
+use mpl_token_metadata::instructions::{Transfer as MetadataTransfer, Delegate as MetadataDelegate, Lock as MetadataLock};
+use mpl_token_metadata::accounts::Metadata;
+use mpl_token_metadata::types::TokenStandard;
 
 use crate::errors::ErrorCode;
 use crate::state::*;
@@ -20,8 +23,7 @@ use anchor_spl::token::Token;
 use anchor_spl::token::TokenAccount;
 use anchor_spl::token::Transfer;
 use anchor_spl::token::{self};
-use mpl_token_metadata::instruction::freeze_delegated_account;
-use mpl_token_metadata::utils::assert_derivation;
+use crate::utils::assert_derivation;
 
 #[derive(Accounts)]
 pub struct ClaimCtx<'info> {
@@ -64,7 +66,7 @@ pub fn handler<'key, 'accounts, 'remaining, 'info>(ctx: Context<'key, 'accounts,
     if token_manager.kind != TokenManagerKind::Programmable as u8 {
         // look at next account
         if let Some(next_account) = remaining_accs.peek() {
-            if next_account.owner == &mpl_token_metadata::id() {
+            if next_account.owner == &mpl_token_metadata::ID {
                 let mint_metadata_data = next_account.try_borrow_mut_data().expect("Failed to borrow data");
                 if let Ok(metadata) = Metadata::deserialize(&mut mint_metadata_data.as_ref()) {
                     // migrated pnft
@@ -150,8 +152,8 @@ pub fn handler<'key, 'accounts, 'remaining, 'info>(ctx: Context<'key, 'accounts,
             let metadata_program = next_account_info(remaining_accs)?;
 
             // edition will be validated by metadata_program
-            // assert_keys_eq!(metadata_program.key, mpl_token_metadata::id());
-            if metadata_program.key() != mpl_token_metadata::id() {
+            // assert_keys_eq!(metadata_program.key, mpl_token_metadata::ID);
+            if metadata_program.key() != mpl_token_metadata::ID {
                 return Err(error!(ErrorCode::PublicKeyMismatch));
             }
 
@@ -166,13 +168,13 @@ pub fn handler<'key, 'accounts, 'remaining, 'info>(ctx: Context<'key, 'accounts,
             token::approve(cpi_context, token_manager.amount)?;
 
             invoke_signed(
-                &freeze_delegated_account(
-                    *metadata_program.key,
-                    token_manager.key(),
-                    ctx.accounts.recipient_token_account.key(),
-                    *edition_info.key,
-                    ctx.accounts.mint.key(),
-                ),
+                &FreezeDelegatedAccount {
+                    delegate: token_manager.key(),
+                    token_account: ctx.accounts.recipient_token_account.key(),
+                    edition: *edition_info.key,
+                    mint: ctx.accounts.mint.key(),
+                    token_program: *metadata_program.key, // TODO: unsure
+                }.instruction(),
                 &[
                     token_manager.to_account_info(),
                     ctx.accounts.recipient_token_account.to_account_info(),
@@ -230,34 +232,30 @@ pub fn handler<'key, 'accounts, 'remaining, 'info>(ctx: Context<'key, 'accounts,
             let authorization_rules_info = next_account_info(remaining_accs)?;
             let _token_metadata_program = next_account_info(remaining_accs)?;
             invoke_signed(
-                &Instruction {
-                    program_id: mpl_token_metadata::id(),
-                    accounts: vec![
-                        AccountMeta::new(ctx.accounts.token_manager_token_account.key(), false),
-                        AccountMeta::new_readonly(ctx.accounts.token_manager_token_account.owner.key(), false),
-                        AccountMeta::new(ctx.accounts.recipient_token_account.key(), false),
-                        AccountMeta::new_readonly(ctx.accounts.recipient.key(), false),
-                        AccountMeta::new_readonly(mint_info.key(), false),
-                        AccountMeta::new(mint_metadata_info.key(), false),
-                        AccountMeta::new_readonly(mint_edition_info.key(), false),
-                        AccountMeta::new(token_manager_token_record_info.key(), false),
-                        AccountMeta::new(recipient_token_record_info.key(), false),
-                        AccountMeta::new_readonly(token_manager.key(), true),
-                        AccountMeta::new(ctx.accounts.recipient.key(), true),
-                        AccountMeta::new_readonly(ctx.accounts.system_program.key(), false),
-                        AccountMeta::new_readonly(sysvar_instructions_info.key(), false),
-                        AccountMeta::new_readonly(ctx.accounts.token_program.key(), false),
-                        AccountMeta::new_readonly(associated_token_program_info.key(), false),
-                        AccountMeta::new_readonly(authorization_rules_program_info.key(), false),
-                        AccountMeta::new_readonly(authorization_rules_info.key(), false),
-                    ],
-                    data: MetadataInstruction::Transfer(TransferArgs::V1 {
+                &MetadataTransfer {
+                    token: ctx.accounts.token_manager_token_account.key(),
+                    token_owner: ctx.accounts.token_manager_token_account.owner.key(),
+                    destination_token: ctx.accounts.recipient_token_account.key(),
+                    destination_owner: ctx.accounts.recipient.key(),
+                    mint: mint_info.key(),
+                    metadata: mint_metadata_info.key(),
+                    edition: Some(mint_edition_info.key()),
+                    token_record: Some(token_manager_token_record_info.key()),
+                    destination_token_record: Some(recipient_token_record_info.key()),
+                    authority: token_manager.key(),
+                    payer: ctx.accounts.recipient.key(),
+                    system_program: ctx.accounts.system_program.key(),
+                    sysvar_instructions: sysvar_instructions_info.key(),
+                    spl_token_program: ctx.accounts.token_program.key(),
+                    spl_ata_program: associated_token_program_info.key(),
+                    authorization_rules_program: Some(authorization_rules_program_info.key()),
+                    authorization_rules: Some(authorization_rules_info.key()),
+                }.instruction(TransferInstructionArgs {
+                    transfer_args: TransferArgs::V1 { 
                         amount: token_manager.amount,
                         authorization_data: None,
-                    })
-                    .try_to_vec()
-                    .unwrap(),
-                },
+                    }
+                }),
                 &[
                     ctx.accounts.token_manager_token_account.to_account_info(),
                     token_manager.to_account_info(),
@@ -281,46 +279,28 @@ pub fn handler<'key, 'accounts, 'remaining, 'info>(ctx: Context<'key, 'accounts,
             )?;
 
             invoke(
-                &Instruction {
-                    program_id: mpl_token_metadata::id(),
-                    accounts: vec![
-                        // 0. `[writable]` Delegate record account
-                        AccountMeta::new_readonly(mpl_token_metadata::id(), false),
-                        // 1. `[]` Delegated owner
-                        AccountMeta::new_readonly(token_manager.key(), false),
-                        // 2. `[writable]` Metadata account
-                        AccountMeta::new(mint_metadata_info.key(), false),
-                        // 3. `[optional]` Master Edition account
-                        AccountMeta::new_readonly(mint_edition_info.key(), false),
-                        // 4. `[]` Token record
-                        AccountMeta::new(recipient_token_record_info.key(), false),
-                        // 5. `[]` Mint account
-                        AccountMeta::new_readonly(mint_info.key(), false),
-                        // 6. `[optional, writable]` Token account
-                        AccountMeta::new(ctx.accounts.recipient_token_account.key(), false),
-                        // 7. `[signer]` Approver (update authority or token owner) to approve the delegation
-                        AccountMeta::new_readonly(ctx.accounts.recipient.key(), true),
-                        // 8. `[signer, writable]` Payer
-                        AccountMeta::new(ctx.accounts.recipient.key(), true),
-                        // 9. `[]` System Program
-                        AccountMeta::new_readonly(ctx.accounts.system_program.key(), false),
-                        // 10. `[]` Instructions sysvar account
-                        AccountMeta::new_readonly(sysvar_instructions_info.key(), false),
-                        // 11. `[optional]` SPL Token Program
-                        AccountMeta::new_readonly(ctx.accounts.token_program.key(), false),
-                        // 12. `[optional]` Token Authorization Rules program
-                        AccountMeta::new_readonly(authorization_rules_program_info.key(), false),
-                        // 13. `[optional]` Token Authorization Rules account
-                        AccountMeta::new_readonly(authorization_rules_info.key(), false),
-                    ],
-                    data: MetadataInstruction::Delegate(DelegateArgs::LockedTransferV1 {
+                &MetadataDelegate {
+                    delegate_record: Some(mpl_token_metadata::ID),
+                    delegate: token_manager.key(),
+                    metadata: mint_metadata_info.key(),
+                    master_edition: Some(mint_edition_info.key()),
+                    token_record: Some(recipient_token_record_info.key()),
+                    mint: mint_info.key(),
+                    token: Some(ctx.accounts.recipient_token_account.key()),
+                    authority: ctx.accounts.recipient.key(),
+                    payer: ctx.accounts.recipient.key(),
+                    system_program: ctx.accounts.system_program.key(),
+                    sysvar_instructions: sysvar_instructions_info.key(),
+                    spl_token_program: Some(ctx.accounts.token_program.key()),
+                    authorization_rules_program: Some(authorization_rules_program_info.key()),
+                    authorization_rules: Some(authorization_rules_info.key()),
+                }.instruction(DelegateInstructionArgs {
+                    delegate_args: DelegateArgs::LockedTransferV1 {
+                        authorization_data: None,
                         amount: token_manager.amount,
                         locked_address: token_manager.key(),
-                        authorization_data: None,
-                    })
-                    .try_to_vec()
-                    .unwrap(),
-                },
+                    }
+                }),
                 &[
                     token_manager.to_account_info(),
                     mint_metadata_info.to_account_info(),
@@ -338,38 +318,25 @@ pub fn handler<'key, 'accounts, 'remaining, 'info>(ctx: Context<'key, 'accounts,
             )?;
 
             invoke_signed(
-                &Instruction {
-                    program_id: mpl_token_metadata::id(),
-                    accounts: vec![
-                        // 0. `[signer]` Delegate
-                        AccountMeta::new_readonly(token_manager.key(), true),
-                        // 1. `[optional]` Token owner
-                        AccountMeta::new_readonly(ctx.accounts.recipient.key(), false),
-                        // 2. `[writable]` Token account
-                        AccountMeta::new(ctx.accounts.recipient_token_account.key(), false),
-                        // 3. `[]` Mint account
-                        AccountMeta::new_readonly(mint_info.key(), false),
-                        // 4. `[writable]` Metadata account
-                        AccountMeta::new(mint_metadata_info.key(), false),
-                        // 5. `[optional]` Edition account
-                        AccountMeta::new_readonly(mint_edition_info.key(), false),
-                        // 6. `[optional, writable]` Token record account
-                        AccountMeta::new(recipient_token_record_info.key(), false),
-                        // 7. `[signer, writable]` Payer
-                        AccountMeta::new(ctx.accounts.recipient.key(), true),
-                        // 8. `[]` System Program
-                        AccountMeta::new_readonly(ctx.accounts.system_program.key(), false),
-                        // 9. `[]` Instructions sysvar account
-                        AccountMeta::new_readonly(sysvar_instructions_info.key(), false),
-                        // 10. `[optional]` SPL Token Program
-                        AccountMeta::new_readonly(ctx.accounts.token_program.key(), false),
-                        // 11. `[optional]` Token Authorization Rules program
-                        AccountMeta::new_readonly(authorization_rules_program_info.key(), false),
-                        // 12. `[optional]` Token Authorization Rules account
-                        AccountMeta::new_readonly(authorization_rules_info.key(), false),
-                    ],
-                    data: MetadataInstruction::Lock(LockArgs::V1 { authorization_data: None }).try_to_vec().unwrap(),
-                },
+                &MetadataLock {
+                    authority: token_manager.key(),
+                    token_owner: Some(ctx.accounts.recipient.key()),
+                    token: ctx.accounts.recipient_token_account.key(),
+                    mint: mint_info.key(),
+                    metadata: mint_metadata_info.key(),
+                    edition: Some(mint_edition_info.key()),
+                    token_record: Some(recipient_token_record_info.key()),
+                    payer: ctx.accounts.recipient.key(),
+                    system_program: ctx.accounts.system_program.key(),
+                    sysvar_instructions: sysvar_instructions_info.key(),
+                    spl_token_program: Some(ctx.accounts.token_program.key()),
+                    authorization_rules_program: Some(authorization_rules_program_info.key()),
+                    authorization_rules: Some(authorization_rules_info.key()),
+                }.instruction(LockInstructionArgs{
+                    lock_args: LockArgs::V1 {
+                        authorization_data: None,
+                    }
+                }),
                 &[
                     token_manager.to_account_info(),
                     ctx.accounts.recipient.to_account_info(),
