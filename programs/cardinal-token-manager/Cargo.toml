@@ -20,13 +20,13 @@ cpi = ["no-entrypoint"]
 default = []
 
 [dependencies]
-anchor-lang = { version = "0.26.0", features = ["init-if-needed"] }
-anchor-spl = "0.26.0"
-solana-program = "1.10.29"
-spl-associated-token-account = "1.1.2"
-spl-token = { version = "3.3.0", features = ["no-entrypoint"] }
-mpl-token-metadata = { version = "1.8.0", features = ["no-entrypoint"] }
-cardinal-creator-standard = { version = "^2.2.0", features = ["cpi"] }
+anchor-lang = { version = "0.29.0", features = ["init-if-needed"] }
+anchor-spl = "0.29.0"
+spl-associated-token-account = "2.3.0"
+spl-token = { version = "4.0.0", features = ["no-entrypoint"] }
+mpl-token-metadata = { version = "3.2.3", features = ["serde"] }
+solana-program = "1.16.23"
+#cardinal-creator-standard = { version = "^3.0.2", features = ["cpi"] }
 
 [dev-dependencies]
 proptest = { version = "1.0" }
