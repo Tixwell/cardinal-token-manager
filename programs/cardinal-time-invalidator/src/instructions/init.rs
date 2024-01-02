@@ -46,7 +46,7 @@ pub fn handler(ctx: Context<InitCtx>, ix: InitIx) -> Result<()> {
     }
     // discriminator check
     let time_invalidator = &mut ctx.accounts.time_invalidator;
-    time_invalidator.bump = *ctx.bumps.get("time_invalidator").unwrap();
+    time_invalidator.bump = ctx.bumps.time_invalidator;
     time_invalidator.token_manager = ctx.accounts.token_manager.key();
     time_invalidator.collector = ix.collector;
     time_invalidator.payment_manager = ix.payment_manager;
