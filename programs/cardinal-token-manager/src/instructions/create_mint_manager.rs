@@ -31,7 +31,7 @@ pub fn handler(ctx: Context<CreateMintManagerCtx>) -> Result<()> {
     let mint_manager = &mut ctx.accounts.mint_manager;
     mint_manager.initializer = ctx.accounts.freeze_authority.key();
     mint_manager.token_managers = 0;
-    mint_manager.bump = *ctx.bumps.get("mint_manager").unwrap();
+    mint_manager.bump = ctx.bumps.mint_manager;
 
     // set freeze authority of mint to mint manager
     let cpi_accounts = SetAuthority {

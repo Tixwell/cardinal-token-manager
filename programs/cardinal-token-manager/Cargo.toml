@@ -20,13 +20,20 @@ cpi = ["no-entrypoint"]
 default = []
 
 [dependencies]
-anchor-lang = { version = "0.26.0", features = ["init-if-needed"] }
-anchor-spl = "0.26.0"
-solana-program = "1.10.29"
-spl-associated-token-account = "1.1.2"
-spl-token = { version = "3.3.0", features = ["no-entrypoint"] }
-mpl-token-metadata = { version = "1.8.0", features = ["no-entrypoint"] }
-cardinal-creator-standard = { version = "^2.2.0", features = ["cpi"] }
+anchor-lang = { version = "=0.29.0", features = ["init-if-needed"] }
+anchor-spl = "0.29.0"
+spl-associated-token-account = "=2.2.0"
+spl-token = { version = "4.0.0", features = ["no-entrypoint"] }
+mpl-token-metadata = "=3.3.0"
+solana-program = "=1.17.13"
+#cardinal-creator-standard = { version = "^3.0.2", features = ["cpi"] }
+
+# fix `error[E0658]: use of unstable library feature 'build_hasher_simple_hash_one'`
+# cf: https://solana.stackexchange.com/questions/8800/cant-build-hello-world
+ahash = "=0.8.6"
 
 [dev-dependencies]
 proptest = { version = "1.0" }
+
+[patch.crates-io]
+mpl-token-metadata = "=3.3.0"

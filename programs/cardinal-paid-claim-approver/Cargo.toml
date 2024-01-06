@@ -20,11 +20,11 @@ cpi = ["no-entrypoint"]
 default = []
 
 [dependencies]
-anchor-lang = { version = "0.26.0", features = ["init-if-needed"] }
-anchor-spl = "0.26.0"
-spl-associated-token-account = "1.1.2"
-spl-token = { version = "3.3.0", features = ["no-entrypoint"] }
-solana-program = "1.10.29"
+anchor-lang = { version = "0.29.0", features = ["init-if-needed"] }
+anchor-spl = "0.29.0"
+solana-program = "1.16.23"
+spl-associated-token-account = "2.3.0"
+spl-token = { version = "4.0.0", features = ["no-entrypoint"] }
 cardinal-token-manager = { version = "^4.6.0", path = "../cardinal-token-manager", features = ["cpi"] }
 cardinal-payment-manager = { version = "^3.0.0", features = ["cpi"] }
 

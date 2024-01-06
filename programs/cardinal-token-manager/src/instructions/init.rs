@@ -96,11 +96,11 @@ pub fn handler(ctx: Context<InitCtx>, ix: InitIx) -> Result<()> {
     }
 
     let mint_counter = &mut ctx.accounts.mint_counter;
-    mint_counter.bump = *ctx.bumps.get("mint_counter").unwrap();
+    mint_counter.bump = ctx.bumps.mint_counter;
     mint_counter.count = mint_counter.count.checked_add(1).expect("Addition error");
     mint_counter.mint = ctx.accounts.mint.key();
 
-    token_manager.bump = *ctx.bumps.get("token_manager").unwrap();
+    token_manager.bump = ctx.bumps.token_manager;
     token_manager.count = mint_counter.count;
     token_manager.num_invalidators = ix.num_invalidators;
     token_manager.issuer = ctx.accounts.issuer.key();

@@ -11,9 +11,9 @@ use anchor_spl::token::Token;
 use anchor_spl::token::TokenAccount;
 use anchor_spl::token::Transfer;
 use anchor_spl::token::{self};
-use mpl_token_metadata::instruction::freeze_delegated_account;
-use mpl_token_metadata::instruction::thaw_delegated_account;
-use mpl_token_metadata::utils::assert_derivation;
+use mpl_token_metadata::instructions::FreezeDelegatedAccount;
+use mpl_token_metadata::instructions::ThawDelegatedAccount;
+use crate::utils::assert_derivation;
 
 #[derive(Accounts)]
 pub struct TransferCtx<'info> {
@@ -44,7 +44,7 @@ pub struct TransferCtx<'info> {
     token_program: Program<'info, Token>,
 }
 
-pub fn handler<'key, 'accounts, 'remaining, 'info>(ctx: Context<'key, 'accounts, 'remaining, 'info, TransferCtx<'info>>) -> Result<()> {
+pub fn handler<'key, 'accounts, 'info, 'remaining: 'info>(ctx: Context<'key, 'accounts, 'remaining, 'info, TransferCtx<'info>>) -> Result<()> {
     let token_manager = &mut ctx.accounts.token_manager;
     token_manager.recipient_token_account = ctx.accounts.recipient_token_account.key();
     token_manager.state_changed_at = Clock::get().unwrap().unix_timestamp;
@@ -112,18 +112,18 @@ pub fn handler<'key, 'accounts, 'remaining, 'info>(ctx: Context<'key, 'accounts,
             let metadata_program = next_account_info(remaining_accs)?;
 
             // edition will be validated by metadata_program
-            if metadata_program.key() != mpl_token_metadata::id() {
+            if metadata_program.key() != mpl_token_metadata::ID {
                 return Err(error!(ErrorCode::PublicKeyMismatch));
             }
 
             invoke_signed(
-                &thaw_delegated_account(
-                    *metadata_program.key,
-                    token_manager.key(),
-                    ctx.accounts.current_holder_token_account.key(),
-                    *edition_info.key,
-                    ctx.accounts.mint.key(),
-                ),
+                &ThawDelegatedAccount {
+                    delegate: token_manager.key(),
+                    token_account: ctx.accounts.current_holder_token_account.key(),
+                    edition: edition_info.key(),
+                    mint: ctx.accounts.mint.key(),
+                    token_program: spl_token::ID,
+                }.instruction(),
                 &[
                     token_manager.to_account_info(),
                     ctx.accounts.current_holder_token_account.to_account_info(),
@@ -154,13 +154,13 @@ pub fn handler<'key, 'accounts, 'remaining, 'info>(ctx: Context<'key, 'accounts,
             token::approve(cpi_context, token_manager.amount)?;
 
             invoke_signed(
-                &freeze_delegated_account(
-                    *metadata_program.key,
-                    token_manager.key(),
-                    ctx.accounts.recipient_token_account.key(),
-                    *edition_info.key,
-                    ctx.accounts.mint.key(),
-                ),
+                &FreezeDelegatedAccount {
+                    delegate: token_manager.key(),
+                    token_account: ctx.accounts.recipient_token_account.key(),
+                    edition: edition_info.key(),
+                    mint: ctx.accounts.mint.key(),
+                    token_program: spl_token::ID,
+                }.instruction(),
                 &[
                     token_manager.to_account_info(),
                     ctx.accounts.recipient_token_account.to_account_info(),

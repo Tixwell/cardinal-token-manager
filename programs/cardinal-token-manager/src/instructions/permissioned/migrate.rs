@@ -4,13 +4,15 @@ use crate::state::TokenManager;
 use crate::state::MINT_MANAGER_SEED;
 use crate::state::*;
 use anchor_lang::prelude::*;
+use anchor_lang::system_program;
 use anchor_spl::token::CloseAccount;
 use anchor_spl::token::Mint;
 use anchor_spl::token::ThawAccount;
 use anchor_spl::token::Token;
 use anchor_spl::token::TokenAccount;
 use anchor_spl::token::{self};
-use mpl_token_metadata::instruction::create_master_edition_v3;
+use mpl_token_metadata::instructions::CreateMasterEditionV3;
+use mpl_token_metadata::instructions::CreateMasterEditionV3InstructionArgs;
 use solana_program::program::invoke_signed;
 
 #[derive(Accounts)]
@@ -49,7 +51,7 @@ pub struct MigrateCtx<'info> {
     token_program: Program<'info, Token>,
     system_program: Program<'info, System>,
     /// CHECK: This is not dangerous because the ID is checked with instructions sysvar
-    #[account(address = mpl_token_metadata::id())]
+    #[account(address = mpl_token_metadata::ID)]
     mpl_token_metadata: UncheckedAccount<'info>,
 }
 
@@ -69,16 +71,19 @@ pub fn handler(ctx: Context<MigrateCtx>) -> Result<()> {
     token::thaw_account(cpi_context)?;
 
     invoke_signed(
-        &create_master_edition_v3(
-            ctx.accounts.mpl_token_metadata.key(),
-            ctx.accounts.mint_edition.key(),
-            ctx.accounts.mint.key(),
-            ctx.accounts.invalidator.key(),
-            ctx.accounts.mint_manager.key(),
-            ctx.accounts.mint_metadata.key(),
-            ctx.accounts.payer.key(),
-            Some(0),
-        ),
+        &CreateMasterEditionV3 {
+            edition: ctx.accounts.mint_edition.key(),
+            mint: ctx.accounts.mint.key(),
+            update_authority: ctx.accounts.invalidator.key(),
+            mint_authority: ctx.accounts.mint_manager.key(),
+            metadata: ctx.accounts.mint_metadata.key(),
+            payer: ctx.accounts.payer.key(),
+            token_program: spl_token::ID,
+            system_program: system_program::ID,
+            rent: None,
+        }.instruction(CreateMasterEditionV3InstructionArgs {
+            max_supply: Some(0)
+        }),
         &[
             ctx.accounts.mpl_token_metadata.to_account_info(),
             ctx.accounts.mint_edition.to_account_info(),

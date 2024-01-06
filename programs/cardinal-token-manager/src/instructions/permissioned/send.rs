@@ -7,7 +7,7 @@ use anchor_spl::token::Token;
 use anchor_spl::token::TokenAccount;
 use anchor_spl::token::Transfer;
 use anchor_spl::token::{self};
-use mpl_token_metadata::utils::assert_derivation;
+use crate::utils::assert_derivation;
 
 use crate::errors::ErrorCode;
 use crate::state::*;
